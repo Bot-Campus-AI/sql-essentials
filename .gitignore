@@ -8,6 +8,7 @@ __pycache__/
 .venv/
 env/
 venv/
+.idea/
 
 # Ignore OS-specific files
 .DS_Store
