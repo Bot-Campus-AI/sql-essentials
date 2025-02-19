@@ -1,55 +1,173 @@
+### **Lesson 2: SQL Syntax – DML vs. DDL & Creating a Database**  
+
+Now that you understand SQL syntax, let's **break it down into two major categories**:  
+✅ **DDL (Data Definition Language)** – Defines and manages database structure.  
+✅ **DML (Data Manipulation Language)** – Performs CRUD operations (Create, Read, Update, Delete).  
 
 ---
 
-### **Lesson 1: Understanding Databases and SQL**  
-#### **Topic: What is a Database?**  
+## **🔹 Step 1: Understanding DDL vs. DML**
+### **1️⃣ Data Definition Language (DDL) – Deals with Structure**
+DDL commands are used to **define** and **modify** database objects like tables, schemas, and indexes.
 
-A **database** is an organized collection of structured data that allows efficient storage, retrieval, and management. It is used in various applications like banking, e-commerce, healthcare, and social media to store user and transactional data.
+| **DDL Command** | **Purpose** |
+|---------------|------------|
+| `CREATE`   | Creates databases and tables |
+| `ALTER`    | Modifies existing tables |
+| `DROP`     | Deletes databases or tables |
+| `TRUNCATE` | Deletes all rows in a table without logging |
 
----
-
-### **Example 1: Real-World Analogy**  
-Think of a **database** as a **digital filing cabinet**. Each drawer in the cabinet holds a specific type of document (like customer records, orders, or employee details), making it easy to find and manage information.
-
-#### **Example: Library Database**
-Imagine a library where books are arranged in sections like **Science, Fiction, and History**. The librarian maintains a **record of books**, including their titles, authors, and availability. This record is like a **database**, storing information systematically.
-
----
-
-### **Example 2: Types of Databases**  
-There are different types of databases, each suited for specific use cases:
-
-1. **Relational Databases (RDBMS)** – Data is stored in tables with relationships (e.g., MySQL, PostgreSQL, SQL Server).
-2. **NoSQL Databases** – Data is stored as key-value pairs, documents, or graphs (e.g., MongoDB, Firebase).
-3. **Graph Databases** – Data is stored as nodes and relationships (e.g., Neo4j).
-4. **Time-Series Databases** – Optimized for timestamped data (e.g., InfluxDB).
-
-📌 **For this course, we will focus on Relational Databases (RDBMS), where data is stored in structured tables with relationships.**
+👉 **Example:** Creating a new table  
+```sql
+CREATE TABLE Employees (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100),
+    department VARCHAR(50),
+    salary DECIMAL(10,2)
+);
+```
 
 ---
 
-### **Example 3: Basic Database Components**  
-Every database consists of these key components:
+### **2️⃣ Data Manipulation Language (DML) – Deals with Data**
+DML commands are used to **insert, update, retrieve, and delete data** inside tables.
 
-1. **Data** – The actual information stored (e.g., customer details, product lists).
-2. **Schema** – The structure or blueprint of the database (like a template for storing data).
-3. **Indexes** – Used for quick data retrieval.
-4. **Queries** – Commands to interact with the database.
+| **DML Command** | **Purpose** |
+|---------------|------------|
+| `INSERT`   | Adds new records |
+| `SELECT`   | Retrieves records |
+| `UPDATE`   | Modifies existing records |
+| `DELETE`   | Removes records |
 
-🛠 **For example**, a banking database stores customer information, accounts, and transactions in different sections. When you check your balance online, a query retrieves your account data instantly.
+👉 **Example:** Insert data into a table  
+```sql
+INSERT INTO Employees (name, department, salary)
+VALUES ('Alice Johnson', 'HR', 55000.00);
+```
 
 ---
 
-### **Example 4: How Databases Work Behind the Scenes**  
-- **Storage:** Data is stored on disks and managed by the **Database Management System (DBMS)**.
-- **Processing:** When a user requests data (e.g., a Google search), the DBMS retrieves and presents the required information.
-- **Security:** Databases implement user access controls to restrict unauthorized access.
+## **🔹 Step 2: Create a Database**
+Before using DDL and DML commands, **let’s create a database**.
+
+### **🛠️ Create a New Database in PostgreSQL**
+Run the following command in **psql**:
+
+```sql
+CREATE DATABASE companyDB;
+```
+
+🔹 **Verify the Database Exists**  
+```sql
+\l
+```
+
+🔹 **Switch to the New Database**  
+```sql
+\c companyDB
+```
 
 ---
 
-### **Key Takeaway**  
-- A **database** stores and organizes data efficiently.  
-- Different types of databases exist, but we focus on **Relational Databases (RDBMS)** in this course.  
-- A **DBMS (Database Management System)** helps manage, retrieve, and secure data.
+## **🔹 Step 3: Create a Table (DDL - `CREATE TABLE`)**
+Inside `companyDB`, create an `Employees` table:
+
+```sql
+CREATE TABLE Employees (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100),
+    department VARCHAR(50),
+    salary DECIMAL(10,2)
+);
+```
+
+🔹 **Verify the Table Exists**  
+```sql
+\d Employees
+```
+
+---
+
+## **🔹 Step 4: Perform CRUD Operations (DML)**
+Once the database and table are created, let’s perform **CRUD (Create, Read, Update, Delete) operations**.
+
+### **✅ Create Data (INSERT)**
+```sql
+INSERT INTO Employees (name, department, salary)
+VALUES 
+('Alice Johnson', 'HR', 55000.00),
+('Bob Smith', 'IT', 70000.00),
+('Charlie Davis', 'Finance', 65000.00);
+```
+
+🔹 **Verify Data**  
+```sql
+SELECT * FROM Employees;
+```
+
+---
+
+### **✅ Read Data (SELECT)**
+1️⃣ **Retrieve All Employees**
+```sql
+SELECT * FROM Employees;
+```
+2️⃣ **Retrieve Employees from IT Department**
+```sql
+SELECT * FROM Employees WHERE department = 'IT';
+```
+3️⃣ **Sort Employees by Salary (Descending)**
+```sql
+SELECT * FROM Employees ORDER BY salary DESC;
+```
+
+---
+
+### **✅ Update Data (UPDATE)**
+1️⃣ **Increase Bob Smith’s Salary**
+```sql
+UPDATE Employees 
+SET salary = 75000.00
+WHERE name = 'Bob Smith';
+```
+
+2️⃣ **Change Alice Johnson’s Department**
+```sql
+UPDATE Employees 
+SET department = 'Admin'
+WHERE name = 'Alice Johnson';
+```
+
+🔹 **Verify Changes**
+```sql
+SELECT * FROM Employees;
+```
+
+---
+
+### **✅ Delete Data (DELETE)**
+1️⃣ **Remove an Employee**
+```sql
+DELETE FROM Employees 
+WHERE name = 'Charlie Davis';
+```
+
+2️⃣ **Delete All Employees in IT Department**
+```sql
+DELETE FROM Employees 
+WHERE department = 'IT';
+```
+
+🔹 **Verify Changes**
+```sql
+SELECT * FROM Employees;
+```
+
+---
+
+### **🔹 Final Steps**
+- **DDL Commands Recap**: `CREATE DATABASE`, `CREATE TABLE`, `ALTER`, `DROP`
+- **DML Commands Recap**: `INSERT`, `SELECT`, `UPDATE`, `DELETE`
+- You now have a **fully functional database** with CRUD operations.
 
 ---
