@@ -1,3 +1,5 @@
+pg_ctl -D "D:\Tools\Postgre\pgsqlWindows\pgsql\bin\data" restart
+
 ### **Lesson 2: SQL Syntax – DML vs. DDL & Creating a Database**  
 
 Now that you understand SQL syntax, let's **break it down into two major categories**:  
