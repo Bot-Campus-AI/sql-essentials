@@ -1,141 +1,131 @@
 ### **📌 Section 4: Advanced Database Objects**  
-#### **🔹 Lesson 1: Views, Materialized Views & Stored Procedures**  
-✅ **Topic 1: Views**  
-✅ **Topic 2: Materialized Views**  
-✅ **Topic 3: Stored Procedures**  
+#### **🔹 Lesson 2: Triggers & Event-Driven Automation**  
+✅ **Topic 1: What Are Triggers?**  
+✅ **Topic 2: Creating and Managing Triggers**  
+✅ **Topic 3: Practical Use Cases of Triggers**  
 
 ---
 
-## **🔹 1. Views (Virtual Tables)**
-A **view** is a **virtual table** based on a `SELECT` query.  
-✅ **Views simplify complex queries** by storing reusable query logic.  
-✅ They **do not store data**, just the query definition.  
-
-### **📍 Creating a View**
-```sql
-CREATE VIEW EmployeeSalaries AS 
-SELECT name, department_id, salary 
-FROM Employees 
-WHERE salary > 60000;
-```
-✅ Now, instead of running the full query, use:  
-```sql
-SELECT * FROM EmployeeSalaries;
-```
-💡 **The view updates automatically** when underlying data changes.
+## **🔹 1. What Are Triggers?**  
+A **Trigger** is an **automatic action** executed **before or after** specific database events like `INSERT`, `UPDATE`, or `DELETE`.  
+✅ **Triggers enforce business rules & data integrity.**  
+✅ **Triggers execute automatically** when an event occurs.  
 
 ---
 
-### **📍 Updating Data Through Views**
-If a view is based on a **single table**, you can update data through it.
+## **🔹 2. Creating and Managing Triggers**  
 
+### **📍 Basic Syntax for Creating a Trigger**
 ```sql
-UPDATE EmployeeSalaries
-SET salary = 70000
-WHERE name = 'Alice Johnson';
+CREATE TRIGGER trigger_name
+{ BEFORE | AFTER } { INSERT | UPDATE | DELETE }
+ON table_name
+FOR EACH { ROW | STATEMENT }
+EXECUTE FUNCTION function_name();
 ```
-✅ This **updates the underlying `Employees` table**.
-
-💡 **Limitations:**  
-- Views **cannot update multiple tables**.  
-- If a view has **aggregations (`SUM()`, `AVG()`)**, it **cannot be updated**.  
+💡 **Triggers require a function** that contains the logic to execute.
 
 ---
 
-## **🔹 2. Materialized Views (Stored Results of Queries)**
-A **Materialized View** is like a regular **View**, but it **stores query results** for better performance.  
-✅ **Faster for large datasets** (since data is precomputed).  
-✅ **Must be refreshed manually** to reflect new data.
+### **📍 Example 1: Audit Log for Salary Changes**  
+✅ Whenever an employee's **salary is updated**, PostgreSQL **automatically logs the changes** into an `AuditLog` table.  
 
-### **📍 Creating a Materialized View**
+#### **Step 1: Create an Audit Log Table**
 ```sql
-CREATE MATERIALIZED VIEW HighPaidEmployees AS
-SELECT name, department_id, salary 
-FROM Employees 
-WHERE salary > 60000;
-```
-✅ The data is **stored** at creation, improving performance.
-
----
-
-### **📍 Refreshing a Materialized View**
-Since data **does not update automatically**, refresh it when needed.
-
-```sql
-REFRESH MATERIALIZED VIEW HighPaidEmployees;
-```
-💡 **Use Case:**  
-If the `Employees` table changes **frequently**, but **analytics queries don’t need real-time updates**, a **Materialized View** saves computation time.
-
----
-
-### **📍 Dropping Views**
-1️⃣ **Drop a Normal View**
-```sql
-DROP VIEW EmployeeSalaries;
-```
-2️⃣ **Drop a Materialized View**
-```sql
-DROP MATERIALIZED VIEW HighPaidEmployees;
+CREATE TABLE AuditLog (
+    log_id SERIAL PRIMARY KEY,
+    employee_id INT,
+    old_salary DECIMAL(10,2),
+    new_salary DECIMAL(10,2),
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 ```
 
----
-
-## **🔹 3. Stored Procedures (Reusable SQL Code)**
-A **Stored Procedure** is a **precompiled SQL block** that **executes multiple SQL commands**.  
-✅ **Increases efficiency** by reducing redundant queries.  
-✅ **Allows procedural logic (IF, LOOP, etc.).**  
-
----
-
-### **📍 Creating a Stored Procedure**
+#### **Step 2: Create a Function for the Trigger**
 ```sql
-CREATE PROCEDURE UpdateSalary(employee_id INT, new_salary DECIMAL)
-LANGUAGE SQL
-AS $$
-    UPDATE Employees 
-    SET salary = new_salary
-    WHERE employee_id = employee_id;
-$$;
-```
-✅ This **updates an employee’s salary** using a stored procedure.
-
----
-
-### **📍 Executing a Stored Procedure**
-```sql
-CALL UpdateSalary(3, 75000);
-```
-✅ **Pass parameters dynamically**, making salary updates reusable.
-
----
-
-### **📍 Stored Procedure with Conditional Logic**
-```sql
-CREATE PROCEDURE GiveBonus(department_id INT, bonus_amount DECIMAL)
-LANGUAGE plpgsql
-AS $$
+CREATE OR REPLACE FUNCTION log_salary_changes()
+RETURNS TRIGGER AS $$
 BEGIN
-    UPDATE Employees
-    SET salary = salary + bonus_amount
-    WHERE department_id = department_id;
+    INSERT INTO AuditLog (employee_id, old_salary, new_salary)
+    VALUES (OLD.employee_id, OLD.salary, NEW.salary);
+    RETURN NEW;
 END;
-$$;
+$$ LANGUAGE plpgsql;
 ```
-✅ **Adds a salary bonus** to all employees in a department.
+✅ The function **stores the old and new salary values** whenever an update happens.
 
+#### **Step 3: Create a Trigger That Calls the Function**
 ```sql
-CALL GiveBonus(2, 5000);
+CREATE TRIGGER salary_update_trigger
+AFTER UPDATE ON Employees
+FOR EACH ROW
+WHEN (OLD.salary IS DISTINCT FROM NEW.salary)
+EXECUTE FUNCTION log_salary_changes();
 ```
-💡 **Now, all IT employees get a ₹5,000 bonus**.
+✅ Now, every time an employee's **salary is updated**, PostgreSQL **logs the change automatically**.
+
+#### **Step 4: Test the Trigger**
+```sql
+UPDATE Employees SET salary = 85000 WHERE employee_id = 3;
+SELECT * FROM AuditLog;
+```
+✅ **Expected Result:**  
+| log_id | employee_id | old_salary | new_salary | updated_at |
+|--------|------------|------------|------------|-------------|
+| 1      | 3          | 60000       | 85000      | 2025-02-20  |
+
+---
+
+### **📍 Example 2: Prevent Deleting Employees Without Manager Approval**
+✅ If an employee is deleted **without manager approval**, PostgreSQL **blocks the action**.
+
+#### **Step 1: Create a Function to Restrict Deletion**
+```sql
+CREATE OR REPLACE FUNCTION prevent_employee_deletion()
+RETURNS TRIGGER AS $$
+BEGIN
+    RAISE EXCEPTION 'Employee cannot be deleted without manager approval.';
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+```
+✅ This **prevents accidental employee deletion**.
+
+#### **Step 2: Create a `BEFORE DELETE` Trigger**
+```sql
+CREATE TRIGGER prevent_delete_trigger
+BEFORE DELETE ON Employees
+FOR EACH ROW
+EXECUTE FUNCTION prevent_employee_deletion();
+```
+
+#### **Step 3: Test the Trigger**
+```sql
+DELETE FROM Employees WHERE employee_id = 4;
+```
+❌ **Error Message:** `Employee cannot be deleted without manager approval.`  
+✅ **Ensures no unauthorized deletion occurs.**
+
+---
+
+## **🔹 3. Practical Use Cases of Triggers**
+| Use Case | Trigger Action |
+|----------|---------------|
+| **Audit Log** | Logs changes when data is updated (`UPDATE`). |
+| **Data Validation** | Prevents invalid operations like deleting records without permission. |
+| **Automatic Calculations** | Updates a column automatically after `INSERT` (e.g., tax calculations). |
+| **Enforce Business Rules** | Prevents salary reductions below a minimum threshold. |
+| **Trigger-Based Notifications** | Sends email alerts on database updates. |
 
 ---
 
 ## **🔹 Summary**
-| Feature | Purpose |
-|---------|---------|
-| **View** | Simplifies complex queries (virtual table). |
-| **Materialized View** | Stores query results for better performance. |
-| **Stored Procedure** | Runs precompiled SQL logic with parameters. |
+| **Concept** | **Purpose** |
+|------------|------------|
+| **Trigger** | Automates actions on `INSERT`, `UPDATE`, `DELETE` |
+| **BEFORE Trigger** | Executes **before** an event (to validate or block). |
+| **AFTER Trigger** | Executes **after** an event (to log or process data). |
+| **FOR EACH ROW** | Runs for every row affected. |
+| **FOR EACH STATEMENT** | Runs once per query execution. |
 
 ---
