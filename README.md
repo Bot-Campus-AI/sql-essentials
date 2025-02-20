@@ -1,105 +1,159 @@
 ### **📌 Section 3: Database Design and Optimization**  
-#### **🔹 Lesson 1: Database Schema Design**  
-✅ **Topic 1: Normalization and Relationships**  
-✅ **Topic 2: Creating and Managing Tables**  
+#### **🔹 Lesson 3: Transactions & Concurrency Control**  
+✅ **Topic 1: ACID Properties**  
+✅ **Topic 2: COMMIT & ROLLBACK**  
+✅ **Topic 3: Isolation Levels (READ COMMITTED, REPEATABLE READ, SERIALIZABLE)**  
 
 ---
 
-## **🔹 1. Normalization and Relationships**  
-Normalization is the process of **structuring a relational database** to reduce **redundancy** and **improve integrity**. It follows **Normal Forms (NF)**, which are rules for organizing data.
+## **🔹 1. ACID Properties (Ensuring Data Integrity in Transactions)**
+A **transaction** is a group of SQL commands that **execute as a single unit**.  
+To maintain **data integrity**, transactions follow **ACID** properties:
 
-### **📍 Key Normal Forms**  
-| **Normal Form** | **Rule** |
-|---------------|------------------------------|
-| **1NF (First Normal Form)** | No duplicate rows, atomic values only. |
-| **2NF (Second Normal Form)** | 1NF + No **partial dependencies** (each column depends on the entire primary key). |
-| **3NF (Third Normal Form)** | 2NF + No **transitive dependencies** (non-key attributes depend only on the primary key). |
-| **BCNF (Boyce-Codd NF)** | Stronger 3NF: Every determinant must be a candidate key. |
-
----
-
-### **📌 Example: Normalizing an Employee Database**
-**💡 Unnormalized Table (Repeating Data)**  
-| employee_id | name        | department   | department_location |
-|------------|------------|-------------|---------------------|
-| 1          | Alice      | IT          | New York           |
-| 2          | Bob        | HR          | London             |
-| 3          | Charlie    | IT          | New York           |
-
-❌ **Issue:** Department information is **repeated** for every employee.
-
-✅ **Normalized Schema (3NF)**
-```sql
-CREATE TABLE Departments (
-    department_id SERIAL PRIMARY KEY,
-    department_name VARCHAR(50) UNIQUE,
-    location VARCHAR(100)
-);
-
-CREATE TABLE Employees (
-    employee_id SERIAL PRIMARY KEY,
-    name VARCHAR(100),
-    department_id INT REFERENCES Departments(department_id),
-    salary DECIMAL(10,2)
-);
-```
-**🔹 Benefits:**  
-- No duplication of department data.  
-- **Foreign key (`department_id`)** establishes a **relationship**.  
+| **ACID Property** | **Definition** | **Example** |
+|------------------|--------------|------------|
+| **Atomicity** | All or nothing: If one part fails, everything rolls back. | Transferring money: If **debit** succeeds but **credit** fails, rollback. |
+| **Consistency** | The database remains in a **valid state** before and after the transaction. | Ensuring an account never goes into **negative balance**. |
+| **Isolation** | Transactions execute **independently** without interfering. | Two users booking the **last movie ticket** at the same time. |
+| **Durability** | Once committed, data is permanently saved. | A successful order remains in the database even after a **system crash**. |
 
 ---
 
-## **🔹 2. Creating and Managing Tables**
-### **📍 Creating a Table**
+## **🔹 2. COMMIT & ROLLBACK (Managing Transactions)**
+### **📍 Example 1: Atomicity (Ensuring All Steps Execute or None)**
 ```sql
-CREATE TABLE Employees (
-    employee_id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    department_id INT REFERENCES Departments(department_id),
-    salary DECIMAL(10,2) CHECK (salary > 0)
-);
+BEGIN;
+
+UPDATE Accounts SET balance = balance - 500 WHERE account_id = 1; -- Debit
+UPDATE Accounts SET balance = balance + 500 WHERE account_id = 2; -- Credit
+
+COMMIT; -- Confirms both actions
 ```
-✅ **Features Used:**  
-- `SERIAL PRIMARY KEY` → Auto-incrementing ID.  
-- `VARCHAR(100) NOT NULL` → Name cannot be empty.  
-- `REFERENCES` → Establishes foreign key relationship.  
-- `CHECK (salary > 0)` → Ensures salary is positive.
+✅ **If both updates succeed, transaction is COMMITTED.**  
+❌ **If an error occurs, we ROLLBACK (undo changes).**
 
 ---
 
-### **📍 Modifying a Table (`ALTER TABLE`)**
-1️⃣ **Add a New Column**  
+### **📍 Example 2: Using ROLLBACK (Undo Changes on Error)**
 ```sql
-ALTER TABLE Employees ADD COLUMN email VARCHAR(100) UNIQUE;
+BEGIN;
+
+UPDATE Accounts SET balance = balance - 500 WHERE account_id = 1;
+-- Simulating an error
+UPDATE Accounts SET balance = balance + 500 WHERE account_id = 999; -- Non-existing account!
+
+ROLLBACK; -- Undo both updates
 ```
-2️⃣ **Modify Column Data Type**  
+❌ Since **account 999 does not exist**, the transaction fails.  
+✅ `ROLLBACK` **undoes the debit**, preventing incorrect money transfer.
+
+---
+
+### **📍 Example 3: Explicit Savepoints (Partial Rollbacks)**
+A **savepoint** allows partial rollbacks inside a transaction.
+
 ```sql
-ALTER TABLE Employees ALTER COLUMN salary TYPE FLOAT;
+BEGIN;
+
+UPDATE Employees SET salary = salary + 5000 WHERE employee_id = 1;
+SAVEPOINT before_bonus;
+
+UPDATE Employees SET salary = salary * 1.1 WHERE department_id = 2; -- Give 10% bonus to IT department
+
+ROLLBACK TO before_bonus; -- Undo only the IT department bonus
+
+COMMIT; -- Salary increase for employee_id = 1 is still applied
 ```
-3️⃣ **Drop a Column**  
+✅ **Only the IT department bonus is rolled back, while the first salary update is committed.**
+
+---
+
+## **🔹 3. Isolation Levels (Handling Concurrent Transactions)**
+Isolation levels define **how transactions interact with each other**.
+
+### **📍 1️⃣ READ COMMITTED (Default in PostgreSQL)**
+🔹 A transaction **sees only committed data** from other transactions.  
+🔹 If another transaction modifies the data before committing, our transaction **won’t see it**.
+
+#### **Example: Preventing Dirty Reads**
+🔸 **Transaction 1 (Uncommitted Update)**
 ```sql
-ALTER TABLE Employees DROP COLUMN email;
+BEGIN;
+UPDATE Accounts SET balance = balance - 1000 WHERE account_id = 1;
+-- Transaction is still open (not committed)
+```
+
+🔹 **Transaction 2 (Trying to Read)**
+```sql
+SELECT balance FROM Accounts WHERE account_id = 1;
+```
+✅ **Transaction 2 sees the original balance** (ignores uncommitted updates).  
+❌ **Prevents Dirty Reads (reading uncommitted changes).**
+
+🔹 **If Transaction 1 is rolled back, no incorrect data is seen.**  
+```sql
+ROLLBACK;
 ```
 
 ---
 
-### **📍 Deleting a Table (`DROP TABLE`)**
+### **📍 2️⃣ REPEATABLE READ (Prevents Non-Repeatable Reads)**
+🔹 **Ensures a transaction sees the same data throughout execution**.  
+🔹 **Prevents another transaction from modifying rows that were already read**.
+
+#### **Example: Preventing Inconsistent Data Reads**
+🔸 **Transaction 1 (Read Employee Salary)**
 ```sql
-DROP TABLE Employees;
+BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+SELECT salary FROM Employees WHERE employee_id = 1;  -- Returns 50000
 ```
-⚠ **Caution:** This **permanently deletes** the table and its data.
+
+🔹 **Transaction 2 (Another User Updates Salary)**
+```sql
+UPDATE Employees SET salary = 60000 WHERE employee_id = 1;
+COMMIT;
+```
+
+🔹 **Transaction 1 (Re-reads Salary)**
+```sql
+SELECT salary FROM Employees WHERE employee_id = 1;
+```
+✅ **Still returns 50000 (same value as first read), even though salary was updated by another transaction!**  
+❌ **Prevents inconsistent reads by locking the row for the transaction’s duration.**
 
 ---
 
-## **🔹 Summary**
-| Concept | Purpose |
-|---------|---------|
-| **Normalization** | Reduces redundancy & improves integrity |
-| **1NF → 3NF → BCNF** | Increasing levels of optimization |
-| **Primary Key (PK)** | Uniquely identifies rows |
-| **Foreign Key (FK)** | Links tables to enforce relationships |
-| **CREATE TABLE** | Defines a new table |
-| **ALTER TABLE** | Modifies an existing table |
-| **DROP TABLE** | Deletes a table |
+### **📍 3️⃣ SERIALIZABLE (Strictest Isolation)**
+🔹 **Ensures full isolation** by **executing transactions one at a time** (as if running sequentially).  
+🔹 Prevents **phantom reads**, but can lead to **performance overhead**.
+
+#### **Example: Preventing Phantom Reads**
+🔸 **Transaction 1 (Count Employees in IT Department)**
+```sql
+BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+SELECT COUNT(*) FROM Employees WHERE department_id = 2;  -- Returns 5
+```
+
+🔹 **Transaction 2 (Another User Inserts a New Employee in IT)**
+```sql
+INSERT INTO Employees (name, department_id, salary) VALUES ('New Hire', 2, 70000);
+COMMIT;
+```
+
+🔹 **Transaction 1 (Recounts Employees)**
+```sql
+SELECT COUNT(*) FROM Employees WHERE department_id = 2;
+```
+✅ **Still returns 5 (ignores the newly inserted record until COMMIT).**  
+❌ **Prevents Phantom Reads (seeing new data that wasn’t there when the transaction started).**
+
+---
+
+## **🔹 Summary Table**
+| **Isolation Level** | **Prevents** | **Example Scenario** |
+|---------------------|-------------|----------------------|
+| **READ COMMITTED** | Dirty Reads | See only committed data. |
+| **REPEATABLE READ** | Non-Repeatable Reads | No changes in already read data. |
+| **SERIALIZABLE** | Phantom Reads | Complete transaction isolation. |
 
 ---
