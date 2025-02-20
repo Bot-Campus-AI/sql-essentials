@@ -1,12 +1,63 @@
-### **📌 Section 3: Database Design and Optimization**  
-#### **🔹 Lesson 3: Transactions & Concurrency Control**  
+
+---
+
+# **📌 Section 3: Database Design and Optimization**
+## **🔹 Lesson 3: Transactions & Concurrency Control**
 ✅ **Topic 1: ACID Properties**  
 ✅ **Topic 2: COMMIT & ROLLBACK**  
 ✅ **Topic 3: Isolation Levels (READ COMMITTED, REPEATABLE READ, SERIALIZABLE)**  
 
 ---
 
-## **🔹 1. ACID Properties (Ensuring Data Integrity in Transactions)**
+## **🔹 1. Setup: Creating Tables and Inserting Data**
+
+Before working with transactions, let’s **create the necessary tables** and insert some sample data.
+
+```sql
+-- Create Accounts Table (for Bank Transactions)
+CREATE TABLE Accounts (
+    account_id SERIAL PRIMARY KEY,
+    account_name VARCHAR(50),
+    balance DECIMAL(10,2) CHECK (balance >= 0)
+);
+
+-- Insert Sample Data into Accounts
+INSERT INTO Accounts (account_name, balance) VALUES
+('Rahul Sharma', 5000),
+('Priya Iyer', 3000),
+('Amit Patel', 7000);
+
+-- Create Employees Table (for Salary Transactions)
+CREATE TABLE Employees (
+    employee_id SERIAL PRIMARY KEY,
+    name VARCHAR(100),
+    department_id INT,
+    salary DECIMAL(10,2)
+);
+
+-- Insert Sample Data into Employees
+INSERT INTO Employees (name, department_id, salary) VALUES
+('Rohan Verma', 1, 50000),
+('Sneha Nair', 2, 60000),
+('Vikas Gupta', 1, 55000);
+
+-- Create Departments Table (for Isolation Level Examples)
+CREATE TABLE Departments (
+    department_id SERIAL PRIMARY KEY,
+    department_name VARCHAR(50)
+);
+
+-- Insert Sample Data into Departments
+INSERT INTO Departments (department_name) VALUES
+('HR'),
+('IT'),
+('Finance');
+```
+✅ **Now the database is fully set up for transaction testing!**
+
+---
+
+## **🔹 2. ACID Properties (Ensuring Data Integrity in Transactions)**  
 A **transaction** is a group of SQL commands that **execute as a single unit**.  
 To maintain **data integrity**, transactions follow **ACID** properties:
 
@@ -19,13 +70,14 @@ To maintain **data integrity**, transactions follow **ACID** properties:
 
 ---
 
-## **🔹 2. COMMIT & ROLLBACK (Managing Transactions)**
+## **🔹 3. COMMIT & ROLLBACK (Managing Transactions)**  
+
 ### **📍 Example 1: Atomicity (Ensuring All Steps Execute or None)**
 ```sql
 BEGIN;
 
-UPDATE Accounts SET balance = balance - 500 WHERE account_id = 1; -- Debit
-UPDATE Accounts SET balance = balance + 500 WHERE account_id = 2; -- Credit
+UPDATE Accounts SET balance = balance - 500 WHERE account_id = 1; -- Debit Rahul
+UPDATE Accounts SET balance = balance + 500 WHERE account_id = 2; -- Credit Priya
 
 COMMIT; -- Confirms both actions
 ```
@@ -68,7 +120,7 @@ COMMIT; -- Salary increase for employee_id = 1 is still applied
 
 ---
 
-## **🔹 3. Isolation Levels (Handling Concurrent Transactions)**
+## **🔹 4. Isolation Levels (Handling Concurrent Transactions)**  
 Isolation levels define **how transactions interact with each other**.
 
 ### **📍 1️⃣ READ COMMITTED (Default in PostgreSQL)**
@@ -88,7 +140,7 @@ UPDATE Accounts SET balance = balance - 1000 WHERE account_id = 1;
 SELECT balance FROM Accounts WHERE account_id = 1;
 ```
 ✅ **Transaction 2 sees the original balance** (ignores uncommitted updates).  
-❌ **Prevents Dirty Reads (reading uncommitted changes).**
+❌ **Prevents Dirty Reads (reading uncommitted changes).**  
 
 🔹 **If Transaction 1 is rolled back, no incorrect data is seen.**  
 ```sql
@@ -131,12 +183,12 @@ SELECT salary FROM Employees WHERE employee_id = 1;
 🔸 **Transaction 1 (Count Employees in IT Department)**
 ```sql
 BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
-SELECT COUNT(*) FROM Employees WHERE department_id = 2;  -- Returns 5
+SELECT COUNT(*) FROM Employees WHERE department_id = 2;  -- Returns 1
 ```
 
 🔹 **Transaction 2 (Another User Inserts a New Employee in IT)**
 ```sql
-INSERT INTO Employees (name, department_id, salary) VALUES ('New Hire', 2, 70000);
+INSERT INTO Employees (name, department_id, salary) VALUES ('Neha Reddy', 2, 70000);
 COMMIT;
 ```
 
@@ -144,7 +196,7 @@ COMMIT;
 ```sql
 SELECT COUNT(*) FROM Employees WHERE department_id = 2;
 ```
-✅ **Still returns 5 (ignores the newly inserted record until COMMIT).**  
+✅ **Still returns 1 (ignores the newly inserted record until COMMIT).**  
 ❌ **Prevents Phantom Reads (seeing new data that wasn’t there when the transaction started).**
 
 ---
@@ -155,5 +207,3 @@ SELECT COUNT(*) FROM Employees WHERE department_id = 2;
 | **READ COMMITTED** | Dirty Reads | See only committed data. |
 | **REPEATABLE READ** | Non-Repeatable Reads | No changes in already read data. |
 | **SERIALIZABLE** | Phantom Reads | Complete transaction isolation. |
-
----
