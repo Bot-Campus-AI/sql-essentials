@@ -1,159 +1,141 @@
-### **📌 Section 3: Database Design and Optimization**  
-#### **🔹 Lesson 3: Transactions & Concurrency Control**  
-✅ **Topic 1: ACID Properties**  
-✅ **Topic 2: COMMIT & ROLLBACK**  
-✅ **Topic 3: Isolation Levels (READ COMMITTED, REPEATABLE READ, SERIALIZABLE)**  
+### **📌 Section 4: Advanced Database Objects**  
+#### **🔹 Lesson 1: Views, Materialized Views & Stored Procedures**  
+✅ **Topic 1: Views**  
+✅ **Topic 2: Materialized Views**  
+✅ **Topic 3: Stored Procedures**  
 
 ---
 
-## **🔹 1. ACID Properties (Ensuring Data Integrity in Transactions)**
-A **transaction** is a group of SQL commands that **execute as a single unit**.  
-To maintain **data integrity**, transactions follow **ACID** properties:
+## **🔹 1. Views (Virtual Tables)**
+A **view** is a **virtual table** based on a `SELECT` query.  
+✅ **Views simplify complex queries** by storing reusable query logic.  
+✅ They **do not store data**, just the query definition.  
 
-| **ACID Property** | **Definition** | **Example** |
-|------------------|--------------|------------|
-| **Atomicity** | All or nothing: If one part fails, everything rolls back. | Transferring money: If **debit** succeeds but **credit** fails, rollback. |
-| **Consistency** | The database remains in a **valid state** before and after the transaction. | Ensuring an account never goes into **negative balance**. |
-| **Isolation** | Transactions execute **independently** without interfering. | Two users booking the **last movie ticket** at the same time. |
-| **Durability** | Once committed, data is permanently saved. | A successful order remains in the database even after a **system crash**. |
+### **📍 Creating a View**
+```sql
+CREATE VIEW EmployeeSalaries AS 
+SELECT name, department_id, salary 
+FROM Employees 
+WHERE salary > 60000;
+```
+✅ Now, instead of running the full query, use:  
+```sql
+SELECT * FROM EmployeeSalaries;
+```
+💡 **The view updates automatically** when underlying data changes.
 
 ---
 
-## **🔹 2. COMMIT & ROLLBACK (Managing Transactions)**
-### **📍 Example 1: Atomicity (Ensuring All Steps Execute or None)**
+### **📍 Updating Data Through Views**
+If a view is based on a **single table**, you can update data through it.
+
 ```sql
-BEGIN;
-
-UPDATE Accounts SET balance = balance - 500 WHERE account_id = 1; -- Debit
-UPDATE Accounts SET balance = balance + 500 WHERE account_id = 2; -- Credit
-
-COMMIT; -- Confirms both actions
+UPDATE EmployeeSalaries
+SET salary = 70000
+WHERE name = 'Alice Johnson';
 ```
-✅ **If both updates succeed, transaction is COMMITTED.**  
-❌ **If an error occurs, we ROLLBACK (undo changes).**
+✅ This **updates the underlying `Employees` table**.
+
+💡 **Limitations:**  
+- Views **cannot update multiple tables**.  
+- If a view has **aggregations (`SUM()`, `AVG()`)**, it **cannot be updated**.  
 
 ---
 
-### **📍 Example 2: Using ROLLBACK (Undo Changes on Error)**
+## **🔹 2. Materialized Views (Stored Results of Queries)**
+A **Materialized View** is like a regular **View**, but it **stores query results** for better performance.  
+✅ **Faster for large datasets** (since data is precomputed).  
+✅ **Must be refreshed manually** to reflect new data.
+
+### **📍 Creating a Materialized View**
 ```sql
-BEGIN;
-
-UPDATE Accounts SET balance = balance - 500 WHERE account_id = 1;
--- Simulating an error
-UPDATE Accounts SET balance = balance + 500 WHERE account_id = 999; -- Non-existing account!
-
-ROLLBACK; -- Undo both updates
+CREATE MATERIALIZED VIEW HighPaidEmployees AS
+SELECT name, department_id, salary 
+FROM Employees 
+WHERE salary > 60000;
 ```
-❌ Since **account 999 does not exist**, the transaction fails.  
-✅ `ROLLBACK` **undoes the debit**, preventing incorrect money transfer.
+✅ The data is **stored** at creation, improving performance.
 
 ---
 
-### **📍 Example 3: Explicit Savepoints (Partial Rollbacks)**
-A **savepoint** allows partial rollbacks inside a transaction.
+### **📍 Refreshing a Materialized View**
+Since data **does not update automatically**, refresh it when needed.
 
 ```sql
-BEGIN;
-
-UPDATE Employees SET salary = salary + 5000 WHERE employee_id = 1;
-SAVEPOINT before_bonus;
-
-UPDATE Employees SET salary = salary * 1.1 WHERE department_id = 2; -- Give 10% bonus to IT department
-
-ROLLBACK TO before_bonus; -- Undo only the IT department bonus
-
-COMMIT; -- Salary increase for employee_id = 1 is still applied
+REFRESH MATERIALIZED VIEW HighPaidEmployees;
 ```
-✅ **Only the IT department bonus is rolled back, while the first salary update is committed.**
+💡 **Use Case:**  
+If the `Employees` table changes **frequently**, but **analytics queries don’t need real-time updates**, a **Materialized View** saves computation time.
 
 ---
 
-## **🔹 3. Isolation Levels (Handling Concurrent Transactions)**
-Isolation levels define **how transactions interact with each other**.
-
-### **📍 1️⃣ READ COMMITTED (Default in PostgreSQL)**
-🔹 A transaction **sees only committed data** from other transactions.  
-🔹 If another transaction modifies the data before committing, our transaction **won’t see it**.
-
-#### **Example: Preventing Dirty Reads**
-🔸 **Transaction 1 (Uncommitted Update)**
+### **📍 Dropping Views**
+1️⃣ **Drop a Normal View**
 ```sql
-BEGIN;
-UPDATE Accounts SET balance = balance - 1000 WHERE account_id = 1;
--- Transaction is still open (not committed)
+DROP VIEW EmployeeSalaries;
 ```
-
-🔹 **Transaction 2 (Trying to Read)**
+2️⃣ **Drop a Materialized View**
 ```sql
-SELECT balance FROM Accounts WHERE account_id = 1;
-```
-✅ **Transaction 2 sees the original balance** (ignores uncommitted updates).  
-❌ **Prevents Dirty Reads (reading uncommitted changes).**
-
-🔹 **If Transaction 1 is rolled back, no incorrect data is seen.**  
-```sql
-ROLLBACK;
+DROP MATERIALIZED VIEW HighPaidEmployees;
 ```
 
 ---
 
-### **📍 2️⃣ REPEATABLE READ (Prevents Non-Repeatable Reads)**
-🔹 **Ensures a transaction sees the same data throughout execution**.  
-🔹 **Prevents another transaction from modifying rows that were already read**.
-
-#### **Example: Preventing Inconsistent Data Reads**
-🔸 **Transaction 1 (Read Employee Salary)**
-```sql
-BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ;
-SELECT salary FROM Employees WHERE employee_id = 1;  -- Returns 50000
-```
-
-🔹 **Transaction 2 (Another User Updates Salary)**
-```sql
-UPDATE Employees SET salary = 60000 WHERE employee_id = 1;
-COMMIT;
-```
-
-🔹 **Transaction 1 (Re-reads Salary)**
-```sql
-SELECT salary FROM Employees WHERE employee_id = 1;
-```
-✅ **Still returns 50000 (same value as first read), even though salary was updated by another transaction!**  
-❌ **Prevents inconsistent reads by locking the row for the transaction’s duration.**
+## **🔹 3. Stored Procedures (Reusable SQL Code)**
+A **Stored Procedure** is a **precompiled SQL block** that **executes multiple SQL commands**.  
+✅ **Increases efficiency** by reducing redundant queries.  
+✅ **Allows procedural logic (IF, LOOP, etc.).**  
 
 ---
 
-### **📍 3️⃣ SERIALIZABLE (Strictest Isolation)**
-🔹 **Ensures full isolation** by **executing transactions one at a time** (as if running sequentially).  
-🔹 Prevents **phantom reads**, but can lead to **performance overhead**.
-
-#### **Example: Preventing Phantom Reads**
-🔸 **Transaction 1 (Count Employees in IT Department)**
+### **📍 Creating a Stored Procedure**
 ```sql
-BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
-SELECT COUNT(*) FROM Employees WHERE department_id = 2;  -- Returns 5
+CREATE PROCEDURE UpdateSalary(employee_id INT, new_salary DECIMAL)
+LANGUAGE SQL
+AS $$
+    UPDATE Employees 
+    SET salary = new_salary
+    WHERE employee_id = employee_id;
+$$;
 ```
-
-🔹 **Transaction 2 (Another User Inserts a New Employee in IT)**
-```sql
-INSERT INTO Employees (name, department_id, salary) VALUES ('New Hire', 2, 70000);
-COMMIT;
-```
-
-🔹 **Transaction 1 (Recounts Employees)**
-```sql
-SELECT COUNT(*) FROM Employees WHERE department_id = 2;
-```
-✅ **Still returns 5 (ignores the newly inserted record until COMMIT).**  
-❌ **Prevents Phantom Reads (seeing new data that wasn’t there when the transaction started).**
+✅ This **updates an employee’s salary** using a stored procedure.
 
 ---
 
-## **🔹 Summary Table**
-| **Isolation Level** | **Prevents** | **Example Scenario** |
-|---------------------|-------------|----------------------|
-| **READ COMMITTED** | Dirty Reads | See only committed data. |
-| **REPEATABLE READ** | Non-Repeatable Reads | No changes in already read data. |
-| **SERIALIZABLE** | Phantom Reads | Complete transaction isolation. |
+### **📍 Executing a Stored Procedure**
+```sql
+CALL UpdateSalary(3, 75000);
+```
+✅ **Pass parameters dynamically**, making salary updates reusable.
+
+---
+
+### **📍 Stored Procedure with Conditional Logic**
+```sql
+CREATE PROCEDURE GiveBonus(department_id INT, bonus_amount DECIMAL)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    UPDATE Employees
+    SET salary = salary + bonus_amount
+    WHERE department_id = department_id;
+END;
+$$;
+```
+✅ **Adds a salary bonus** to all employees in a department.
+
+```sql
+CALL GiveBonus(2, 5000);
+```
+💡 **Now, all IT employees get a ₹5,000 bonus**.
+
+---
+
+## **🔹 Summary**
+| Feature | Purpose |
+|---------|---------|
+| **View** | Simplifies complex queries (virtual table). |
+| **Materialized View** | Stores query results for better performance. |
+| **Stored Procedure** | Runs precompiled SQL logic with parameters. |
 
 ---
