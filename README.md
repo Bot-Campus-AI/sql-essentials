@@ -17,18 +17,35 @@ Normalization is the process of **structuring a relational database** to reduce 
 | **BCNF (Boyce-Codd NF)** | Stronger 3NF: Every determinant must be a candidate key. |
 
 ---
+### **📌 Example: Normalizing an Employee Database**  
 
-### **📌 Example: Normalizing an Employee Database**
-**💡 Unnormalized Table (Repeating Data)**  
-| employee_id | name        | department   | department_location |
-|------------|------------|-------------|---------------------|
-| 1          | Alice      | IT          | New York           |
-| 2          | Bob        | HR          | London             |
-| 3          | Charlie    | IT          | New York           |
+#### **💡 Unnormalized Table (Repeating Data)**  
+Before normalization, department details are repeated for each employee.
 
-❌ **Issue:** Department information is **repeated** for every employee.
+```sql
+CREATE TABLE EmployeeUnnormalized (
+    employee_id INT PRIMARY KEY,
+    name VARCHAR(100),
+    department VARCHAR(50),
+    department_location VARCHAR(100)
+);
+```
 
-✅ **Normalized Schema (3NF)**
+| **employee_id** | **name**  | **department** | **department_location** |
+|---------------|-----------|---------------|---------------------|
+| 1            | Alice     | IT            | New York           |
+| 2            | Bob       | HR            | London             |
+| 3            | Charlie   | IT            | New York           |
+
+❌ **Issue:**  
+- **Department names & locations are repeated** for multiple employees.  
+- **If department locations change, we need to update multiple rows**.  
+
+---
+
+#### ✅ **Normalized Schema (3NF)**
+To remove redundancy, **split the department details into a separate table**.
+
 ```sql
 CREATE TABLE Departments (
     department_id SERIAL PRIMARY KEY,
@@ -43,9 +60,6 @@ CREATE TABLE Employees (
     salary DECIMAL(10,2)
 );
 ```
-**🔹 Benefits:**  
-- No duplication of department data.  
-- **Foreign key (`department_id`)** establishes a **relationship**.  
 
 ---
 
