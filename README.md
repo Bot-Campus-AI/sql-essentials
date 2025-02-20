@@ -1,55 +1,91 @@
+### **📌 Section 2: Data Retrieval and Manipulation**  
+#### **🔹 Lesson 1: Filtering and Sorting Data**  
+✅ **Topic: `WHERE`, `ORDER BY`, and `LIMIT` Clauses**  
 
 ---
 
-### **Lesson 1: Understanding Databases and SQL**  
-#### **Topic: What is a Database?**  
+## **🔹 1. The `WHERE` Clause (Filtering Data)**
+The `WHERE` clause is used to **filter records** based on specific conditions.  
 
-A **database** is an organized collection of structured data that allows efficient storage, retrieval, and management. It is used in various applications like banking, e-commerce, healthcare, and social media to store user and transactional data.
+### **📍 Syntax:**
+```sql
+SELECT column1, column2 
+FROM table_name 
+WHERE condition;
+```
 
----
-
-### **Example 1: Real-World Analogy**  
-Think of a **database** as a **digital filing cabinet**. Each drawer in the cabinet holds a specific type of document (like customer records, orders, or employee details), making it easy to find and manage information.
-
-#### **Example: Library Database**
-Imagine a library where books are arranged in sections like **Science, Fiction, and History**. The librarian maintains a **record of books**, including their titles, authors, and availability. This record is like a **database**, storing information systematically.
-
----
-
-### **Example 2: Types of Databases**  
-There are different types of databases, each suited for specific use cases:
-
-1. **Relational Databases (RDBMS)** – Data is stored in tables with relationships (e.g., MySQL, PostgreSQL, SQL Server).
-2. **NoSQL Databases** – Data is stored as key-value pairs, documents, or graphs (e.g., MongoDB, Firebase).
-3. **Graph Databases** – Data is stored as nodes and relationships (e.g., Neo4j).
-4. **Time-Series Databases** – Optimized for timestamped data (e.g., InfluxDB).
-
-📌 **For this course, we will focus on Relational Databases (RDBMS), where data is stored in structured tables with relationships.**
+### **📌 Example 1: Filter Employees by Department**
+```sql
+SELECT * FROM Employees 
+WHERE department = 'IT';
+```
+✅ **Returns only employees in the IT department.**  
 
 ---
 
-### **Example 3: Basic Database Components**  
-Every database consists of these key components:
+## **🔹 2. The `ORDER BY` Clause (Sorting Data)**
+The `ORDER BY` clause **sorts the results** in ascending (`ASC`) or descending (`DESC`) order.  
 
-1. **Data** – The actual information stored (e.g., customer details, product lists).
-2. **Schema** – The structure or blueprint of the database (like a template for storing data).
-3. **Indexes** – Used for quick data retrieval.
-4. **Queries** – Commands to interact with the database.
+### **📍 Syntax:**
+```sql
+SELECT column1, column2 
+FROM table_name 
+ORDER BY column_name ASC|DESC;
+```
 
-🛠 **For example**, a banking database stores customer information, accounts, and transactions in different sections. When you check your balance online, a query retrieves your account data instantly.
+### **📌 Example 2: Sort Employees by Salary (Descending)**
+```sql
+SELECT name, salary 
+FROM Employees 
+ORDER BY salary DESC;
+```
+✅ **Returns employees sorted from highest to lowest salary.**  
+
+### **📌 Example 3: Sort by Multiple Columns**
+```sql
+SELECT name, department, salary 
+FROM Employees 
+ORDER BY department ASC, salary DESC;
+```
+✅ **Sorts first by department (A–Z) and then by highest salary within each department.**  
 
 ---
 
-### **Example 4: How Databases Work Behind the Scenes**  
-- **Storage:** Data is stored on disks and managed by the **Database Management System (DBMS)**.
-- **Processing:** When a user requests data (e.g., a Google search), the DBMS retrieves and presents the required information.
-- **Security:** Databases implement user access controls to restrict unauthorized access.
+## **🔹 3. The `LIMIT` Clause (Restricting Results)**
+The `LIMIT` clause **restricts the number of rows** returned in a query.  
+
+### **📍 Syntax:**
+```sql
+SELECT column1, column2 
+FROM table_name 
+LIMIT number_of_rows;
+```
+
+### **📌 Example 4: Get Top 3 Highest-Paid Employees**
+```sql
+SELECT name, salary 
+FROM Employees 
+ORDER BY salary DESC 
+LIMIT 3;
+```
+✅ **Returns only the top 3 employees with the highest salaries.**  
+
+### **📌 Example 5: Pagination Using `LIMIT` and `OFFSET`**
+To get **the next 3 employees (pagination):**
+```sql
+SELECT name, salary 
+FROM Employees 
+ORDER BY salary DESC 
+LIMIT 3 OFFSET 3;
+```
+✅ **Skips the first 3 rows and fetches the next 3.**  
 
 ---
 
-### **Key Takeaway**  
-- A **database** stores and organizes data efficiently.  
-- Different types of databases exist, but we focus on **Relational Databases (RDBMS)** in this course.  
-- A **DBMS (Database Management System)** helps manage, retrieve, and secure data.
+### **📝 Key Takeaways**
+- `WHERE` **filters data** based on a condition.  
+- `ORDER BY` **sorts results** in `ASC` (default) or `DESC`.  
+- `LIMIT` **restricts the number of records** returned.  
+- `OFFSET` is used for **pagination**.  
 
 ---
